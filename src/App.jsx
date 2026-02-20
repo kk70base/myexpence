@@ -130,7 +130,7 @@ const ExpenseTrackerApp = () => {
       const mimeType = base64Data.split(';')[0].split(':')[1];
 
       // モデル指定
-      const MODEL_NAME = 'gemini-2.0-flash';
+      const MODEL_NAME = 'gemini-1.5-flash';
       
       const prompt = `
         この領収書（画像またはPDF）を解析し、以下の情報をJSON形式で抽出してください。
