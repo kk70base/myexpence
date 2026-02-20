@@ -10,7 +10,7 @@ const ExpenseTrackerApp = () => {
 
   const [activeTab, setActiveTab] = useState('scan');
   const [expenses, setExpenses] = useState([]);
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(fahlse);
   const [isUploading, setIsUploading] = useState(false);
   const [currentImage, setCurrentImage] = useState(null);
   const [showSettings, setShowSettings] = useState(false);
@@ -130,7 +130,7 @@ const ExpenseTrackerApp = () => {
       const mimeType = base64Data.split(';')[0].split(':')[1];
 
       // モデル指定
-      const MODEL_NAME = 'gemini-2.5-flash-preview-09-2025';
+      const MODEL_NAME = 'gemini-2.0-flash';
       
       const prompt = `
         この領収書（画像またはPDF）を解析し、以下の情報をJSON形式で抽出してください。
