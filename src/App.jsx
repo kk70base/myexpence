@@ -10,7 +10,7 @@ const ExpenseTrackerApp = () => {
 
   const [activeTab, setActiveTab] = useState('scan');
   const [expenses, setExpenses] = useState([]);
-  const [isProcessing, setIsProcessing] = useState(fahlse);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [currentImage, setCurrentImage] = useState(null);
   const [showSettings, setShowSettings] = useState(false);
