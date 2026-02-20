@@ -130,7 +130,7 @@ const ExpenseTrackerApp = () => {
       const mimeType = base64Data.split(';')[0].split(':')[1];
 
       // モデル指定
-      const MODEL_NAME = 'gemini-1.5-flash';
+      const MODEL_NAME = 'gemini-2.5-flash';
       
       const prompt = `
         この領収書（画像またはPDF）を解析し、以下の情報をJSON形式で抽出してください。
@@ -147,7 +147,7 @@ const ExpenseTrackerApp = () => {
         余計なマークダウン記法（\`\`\`jsonなど）は含めず、純粋なJSONテキストのみを返してください。
       `;
 
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${geminiApiKey}`, {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/${MODEL_NAME}:generateContent?key=${geminiApiKey}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
