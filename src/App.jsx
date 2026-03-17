@@ -19,7 +19,7 @@ const ExpenseTrackerApp = () => {
   
   const [formData, setFormData] = useState({
     date: '',
-    amount: '',
+    amount: '',h
     vendor: '',
     category: '消耗品費',
     description: ''
@@ -136,7 +136,7 @@ const ExpenseTrackerApp = () => {
       const content = base64Data.split(',')[1];
       const mimeType = base64Data.split(';')[0].split(':')[1];
 
-      const MODEL_NAME = 'gemini-2.5-flash-preview-09-2025';
+      const MODEL_NAME = 'gemini-2.5-flash';
       
       const prompt = `
         この領収書（画像またはPDF）を解析し、以下の情報をJSON形式で抽出してください。
