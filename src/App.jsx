@@ -19,7 +19,7 @@ const ExpenseTrackerApp = () => {
   
   const [formData, setFormData] = useState({
     date: '',
-    amount: '',h
+    amount: '',
     vendor: '',
     category: '消耗品費',
     description: ''
