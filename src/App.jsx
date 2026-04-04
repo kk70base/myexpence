@@ -22,7 +22,8 @@ const ExpenseTrackerApp = () => {
     amount: '',
     vendor: '',
     category: '消耗品費',
-    description: ''
+    description: '',
+    isDebit: false
   });
   const [showSuccess, setShowSuccess] = useState(false);
   const [statusMessage, setStatusMessage] = useState('');
@@ -205,8 +206,8 @@ const ExpenseTrackerApp = () => {
   };
 
   const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    const { name, value, type, checked } = e.target;
+    setFormData(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
   };
 
   const sendToSpreadsheet = async (data) => {
@@ -269,7 +270,7 @@ const ExpenseTrackerApp = () => {
     // フォームをリセットして次の撮影準備を整える
     setCurrentImage(null);
     setFormData({
-      date: '', amount: '', vendor: '', category: '消耗品費', description: ''
+      date: '', amount: '', vendor: '', category: '消耗品費', description: '', isDebit: false
     });
     if (fileInputRef.current) fileInputRef.current.value = '';
 
@@ -459,6 +460,11 @@ const ExpenseTrackerApp = () => {
                 <label className="text-xs font-bold text-gray-500">メモ</label>
                 <textarea name="description" rows="2" value={formData.description} onChange={handleInputChange} className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm"></textarea>
               </div>
+
+              <label className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition">
+                <input type="checkbox" name="isDebit" checked={formData.isDebit} onChange={handleInputChange} className="w-5 h-5 rounded accent-indigo-600 cursor-pointer" />
+                <span className="text-sm font-bold text-gray-700">デビットカードで支払い</span>
+              </label>
 
               <button type="submit" disabled={isUploading} className={`w-full text-white py-4 rounded-xl font-bold shadow-md transition flex items-center justify-center gap-2 ${isUploading ? 'bg-indigo-400 cursor-wait' : 'bg-indigo-600 hover:bg-indigo-700 active:scale-95'}`}>
                 {isUploading ? (
