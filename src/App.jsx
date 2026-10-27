@@ -138,7 +138,7 @@ const ExpenseTrackerApp = () => {
       const mimeType = base64Data.split(';')[0].split(':')[1];
 
       // ★正しい無料モデル名に修正★
-      const MODEL_NAME = 'gemini-1.5-flash';
+      const MODEL_NAME = 'gemini-3.8-flash';
       
       const prompt = `
         この領収書（画像またはPDF）を解析し、以下の情報をJSON形式で抽出してください。
