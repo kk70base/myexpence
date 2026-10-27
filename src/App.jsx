@@ -54,19 +54,16 @@ const ExpenseTrackerApp = () => {
     }
   }, []);
 
-  // ★ 白画面エラー修正部分 ★
   useEffect(() => {
     if (!isLocked) {
       try {
-        // スマホの保存容量オーバー(フリーズ)を防ぐため、履歴保存時は重い画像データを除外する
         const saveableExpenses = expenses.map(expense => ({
           ...expense,
-          imagePreview: null // ローカルの履歴には画像を残さない
+          imagePreview: null 
         }));
         localStorage.setItem('expense_data', JSON.stringify(saveableExpenses));
       } catch (e) {
-        console.warn("ローカル保存に失敗しました(容量オーバー等):", e);
-        // 万が一容量オーバーした場合は、古いデータを半分消して再度保存を試みる
+        console.warn("ローカル保存に失敗しました:", e);
         if (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
            const reducedExpenses = expenses.slice(0, Math.floor(expenses.length / 2)).map(expense => ({
              ...expense, imagePreview: null
@@ -133,11 +130,15 @@ const ExpenseTrackerApp = () => {
     setIsProcessing(true);
     setStatusMessage('Geminiで解析中...');
 
+    // 15秒でタイムアウト（無限くるくる防止）
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
+
     try {
       const content = base64Data.split(',')[1];
       const mimeType = base64Data.split(';')[0].split(':')[1];
 
-      // ★正しい無料モデル名に修正★
+      // 公式エラー画面の指示通り、最新の正しいモデル名を指定
       const MODEL_NAME = 'gemini-3.8-flash';
       
       const prompt = `
@@ -163,10 +164,13 @@ const ExpenseTrackerApp = () => {
               { inline_data: { mime_type: mimeType, data: content } }
             ]
           }]
-        })
+        }),
+        signal: controller.signal // タイムアウト設定を反映
       });
 
+      clearTimeout(timeoutId); // 成功したらタイムアウト解除
       const data = await response.json();
+      
       if (data.error) throw new Error(data.error.message);
 
       let text = data.candidates[0].content.parts[0].text;
@@ -185,8 +189,13 @@ const ExpenseTrackerApp = () => {
       setStatusMessage('解析完了！');
     } catch (error) {
       console.error('Gemini Analysis Error:', error);
-      alert(`解析に失敗しました: ${error.message}\n手動で入力してください。`);
+      if (error.name === 'AbortError') {
+        alert('解析に時間がかかりすぎたため中断しました。通信環境の良いところで再度お試しください。');
+      } else {
+        alert(`解析に失敗しました: ${error.message}\n手動で入力してください。`);
+      }
     } finally {
+      clearTimeout(timeoutId);
       setIsProcessing(false);
       setTimeout(() => setStatusMessage(''), 3000);
     }
@@ -230,86 +239,13 @@ const ExpenseTrackerApp = () => {
       return result.status === 'success';
     } catch (error) {
       console.error("Upload failed", error);
-      alert(`スプレッドシートへの送信に失敗しました。\nエラー: ${error.message}`);
-      return false; 
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
-  const handleSave = async (e) => {
-    e.preventDefault();
-    if (!formData.amount || !formData.date) return;
-
-    // ★一覧表示用に画像を持たないデータを作る
-    const newExpense = {
-      id: Date.now(),
-      ...formData,
-      imagePreview: null // 一覧には画像を残さない
-    };
-    
-    // ★GASへ送信するデータには画像を含める
-    const dataToSend = {
-      ...newExpense,
-      imagePreview: currentImage
-    };
-
-    let success = true;
-    if (gasUrl) {
-      setStatusMessage('送信中...');
-      success = await sendToSpreadsheet(dataToSend);
-    }
-
-    // 履歴に追加
-    setExpenses([newExpense, ...expenses]);
-    
-    if (gasUrl && !success) {
-      setStatusMessage('送信失敗 (履歴のみ保存)');
-    } else {
-      setShowSuccess(true);
-      setStatusMessage(gasUrl ? '送信完了！続けて登録できます' : '保存完了！');
-    }
-    
-    // フォームをリセットして次の撮影準備を整える
-    setCurrentImage(null);
-    setFormData({
-      date: '', amount: '', vendor: '', category: '消耗品費', description: '', isDebit: false
-    });
-    if (fileInputRef.current) fileInputRef.current.value = '';
-
-    // 画面上部にスクロールして戻す
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-
-    setTimeout(() => {
-      setShowSuccess(false);
-      setStatusMessage('');
-    }, 3000);
-  };
-
-  const handleDelete = (id) => {
-    setExpenses(expenses.filter(item => item.id !== id));
-  };
-
-  const downloadCSV = () => {
-    if (expenses.length === 0) return;
-    const headers = ['日付', '支払先', '費目', '金額', 'メモ'];
-    const csvContent = [
-      headers.join(','),
-      ...expenses.map(item => [
-        item.date, `"${item.vendor}"`, item.category, item.amount, `"${item.description}"`
-      ].join(','))
-    ].join('\n');
-
-    const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', `経費精算_${new Date().toISOString().slice(0,10)}.csv`);
+      alert(`スプレッドシートへの送信に失敗しました。\nエラー: ${error.message}`); return false; } finally { setIsUploading(false); } };  const handleSave = async (e) => { e.preventDefault(); if (!formData.amount \vert{}\vert{} !formData.date) return;  const newExpense = { id: Date.now(), ...formData, imagePreview: null };  const dataToSend = { ...newExpense, imagePreview: currentImage };  let success = true; if (gasUrl) { setStatusMessage('送信中...'); success = await sendToSpreadsheet(dataToSend); }  setExpenses([newExpense, ...expenses]);  if (gasUrl && !success) { setStatusMessage('送信失敗 (履歴のみ保存)'); } else { setShowSuccess(true); setStatusMessage(gasUrl ? '送信完了！続けて登録できます' : '保存完了！'); }  setCurrentImage(null); setFormData({ date: '', amount: '', vendor: '', category: '消耗品費', description: '', isDebit: false }); if (fileInputRef.current) fileInputRef.current.value = '';  window.scrollTo({ top: 0, behavior: 'smooth' });  setTimeout(() => { setShowSuccess(false); setStatusMessage(''); }, 3000); };  const handleDelete = (id) => { setExpenses(expenses.filter(item => item.id !== id)); };  const downloadCSV = () => { if (expenses.length === 0) return; const headers = ['日付', '支払先', '費目', '金額', 'メモ']; const csvContent = [ headers.join(','), ...expenses.map(item => [ item.date, `"${item.vendor}"`, item.category, item.amount, `"${item.description}"` ].join(',')) ].join('\n');  const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csvContent], { type: 'text/csv;charset=utf-8;' }); const url = URL.createObjectURL(blob); const link = document.createElement('a'); link.href = url; link.setAttribute('download', `経費精算_${new Date().toISOString().slice(0,10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
 
+  // 同じ画像を選んでも無反応にならないよう onClick={(e) => e.target.value = null} を追加
   const triggerCamera = () => {
     fileInputRef.current.click();
   };
@@ -407,7 +343,7 @@ const ExpenseTrackerApp = () => {
                   <div className="w-20 h-20 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4"><Camera className="w-10 h-10" /></div>
                   <h3 className="text-lg font-semibold text-gray-700">ファイルを選択</h3>
                   <p className="text-sm text-gray-500 mt-2">カメラ・画像・PDFに対応</p>
-                  <input type="file" accept="image/*,application/pdf" className="hidden" ref={fileInputRef} onChange={handleFileChange} />
+                  <input type="file" accept="image/*,application/pdf" className="hidden" ref={fileInputRef} onChange={handleFileChange} onClick={(e) => e.target.value = null} />
                 </div>
               ) : (
                 <div className="relative">
@@ -469,81 +405,4 @@ const ExpenseTrackerApp = () => {
                 <span className="text-sm font-bold text-gray-700">デビットカードで支払い</span>
               </label>
 
-              <button type="submit" disabled={isUploading} className={`w-full text-white py-4 rounded-xl font-bold shadow-md transition flex items-center justify-center gap-2 ${isUploading ? 'bg-indigo-400 cursor-wait' : 'bg-indigo-600 hover:bg-indigo-700 active:scale-95'}`}>
-                {isUploading ? (
-                  <><div className="animate-spin h-5 w-5 border-2 border-white rounded-full border-t-transparent"></div>送信中...</>
-                ) : (
-                  <><Save className="w-5 h-5" /> 保存して次へ</>
-                )}
-              </button>
-            </form>
-          </div>
-        )}
-
-        {/* List View */}
-        {activeTab === 'list' && (
-          <div className="space-y-4">
-             <div className="flex justify-between items-center mb-2">
-               <h2 className="text-lg font-bold text-gray-700">登録済み経費一覧</h2>
-               <span className="text-sm text-gray-500 bg-gray-200 px-2 py-1 rounded-md">{expenses.length} 件</span>
-             </div>
-
-            {expenses.length === 0 ? (
-              <div className="text-center py-12 text-gray-400">
-                <p>まだ経費データがありません</p>
-              </div>
-            ) : (
-              <div className="grid gap-3">
-                {expenses.map((expense) => (
-                  <div key={expense.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-start gap-4">
-                    <div className="w-12 h-12 bg-indigo-50 rounded-lg flex items-center justify-center flex-shrink-0 text-indigo-400">
-                      <FileText className="w-6 h-6" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <p className="text-xs text-gray-500 mb-0.5">{expense.date}</p>
-                          <h4 className="font-bold text-gray-800 truncate">{expense.vendor || '支払先不明'}</h4>
-                        </div>
-                        <p className="font-bold text-indigo-600">¥{Number(expense.amount).toLocaleString()}</p>
-                      </div>
-                      <div className="flex justify-between items-end mt-2">
-                        <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded border border-gray-200">{expense.category}</span>
-                        <button onClick={() => handleDelete(expense.id)} className="text-gray-400 hover:text-red-500 transition p-2"><Trash2 className="w-4 h-4" /></button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-      </main>
-
-      {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 w-full bg-white border-t border-gray-200 pb-safe md:pb-0 z-10">
-        <div className="max-w-2xl mx-auto flex justify-around">
-          <button onClick={() => setActiveTab('scan')} className={`flex-1 py-3 flex flex-col items-center gap-1 text-xs font-medium transition ${activeTab === 'scan' ? 'text-indigo-600' : 'text-gray-400'}`}>
-            <Camera className="w-6 h-6" />スキャン
-          </button>
-          <div className="relative -top-5">
-            <button onClick={() => { setActiveTab('scan'); triggerCamera(); }} className="bg-indigo-600 text-white rounded-full p-4 shadow-lg hover:bg-indigo-700 transition transform active:scale-95">
-              <Plus className="w-6 h-6" />
-            </button>
-          </div>
-          <button onClick={() => setActiveTab('list')} className={`flex-1 py-3 flex flex-col items-center gap-1 text-xs font-medium transition ${activeTab === 'list' ? 'text-indigo-600' : 'text-gray-400'}`}>
-            <FileText className="w-6 h-6" />経費一覧
-          </button>
-        </div>
-      </nav>
-      
-      <style>{`
-        .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
-        @keyframes bounce-short { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
-        .animate-bounce-short { animation: bounce-short 0.5s ease-in-out; }
-      `}</style>
-    </div>
-  );
-};
-
-export default ExpenseTrackerApp;
+              <button type="submit" disabled={isUploading} className={`w-full text-white py-4 rounded-xl font-bold shadow-md
