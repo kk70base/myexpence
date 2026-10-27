@@ -5,8 +5,13 @@
 // ============================================================
 
 // ---------- コンポーネントの外に追加 ----------
-// エイリアスで常に現行Flashを使う。ダメなら安定版にフォールバック
-const GEMINI_MODELS = ['gemini-flash-latest', 'gemini-2.5-flash'];
+// Lite優先（速い・混みにくい・レシートなら精度十分）→ 混んでたら次へ
+const GEMINI_MODELS = [
+  'gemini-flash-lite-latest',
+  'gemini-flash-latest',
+  'gemini-2.5-flash-lite',
+  'gemini-2.5-flash',
+];
 const CATEGORIES = ['消耗品費', '旅費交通費', '交際費', '会議費', '通信費', 'その他'];
 const RETRYABLE = [429, 500, 502, 503, 504];
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -93,7 +98,7 @@ const analyzeReceiptWithGemini = async (base64Data) => {
     let lastError = null;
 
     outer: for (const model of GEMINI_MODELS) {
-      for (let attempt = 0; attempt < 3; attempt++) {
+      for (let attempt = 0; attempt < 2; attempt++) {
         try {
           data = await callGemini(model, body);
           break outer;
@@ -102,7 +107,7 @@ const analyzeReceiptWithGemini = async (base64Data) => {
           if (err.status === 404 || err.status === 400) break; // モデル名NG等 → 次のモデルへ
           if (err.status === 401 || err.status === 403) throw err; // APIキー問題はリトライ無意味
           if (err.name !== 'AbortError' && !RETRYABLE.includes(err.status)) throw err;
-          setStatusMessage(`混雑中…再試行 ${attempt + 1}/3`);
+          setStatusMessage(`混雑中…再試行 (${model})`);
           await sleep(1500 * 2 ** attempt); // 1.5s → 3s → 6s
         }
       }
