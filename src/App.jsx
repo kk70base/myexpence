@@ -47,8 +47,8 @@ const ExpenseTrackerApp = () => {
       }
       const savedUrl = localStorage.getItem('gas_app_url');
       if (savedUrl) setGasUrl(savedUrl);
-      const savedApiKey = localStorage.getItem('_api_key');
-      if (savedApiKey) setApiKey(savedApiKey);
+      const savedApiKey = localStorage.getItem('gemini_api_key');
+      if (savedApiKey) setGeminiApiKey(savedApiKey);
     } catch (e) {
       console.warn("初期データの読み込みに失敗しました", e);
     }
@@ -81,7 +81,7 @@ const ExpenseTrackerApp = () => {
 
   const saveSettings = () => {
     localStorage.setItem('gas_app_url', gasUrl);
-    localStorage.setItem('_api_key', ApiKey);
+    localStorage.setItem('gemini_api_key', geminiApiKey);
     setShowSettings(false);
     setStatusMessage('設定を保存しました');
     setTimeout(() => setStatusMessage(''), 3000);
@@ -119,8 +119,8 @@ const ExpenseTrackerApp = () => {
         const base64Data = reader.result;
         setCurrentImage(base64Data);
         
-        if (ApiKey) {
-          analyzeReceiptWith(base64Data);
+        if (geminiApiKey) {
+          analyzeReceiptWithGemini(base64Data);
         } else {
           simulateAIProcessing();
         }
@@ -129,14 +129,15 @@ const ExpenseTrackerApp = () => {
     }
   };
 
-  const analyzeReceiptWith = async (base64Data) => {
+  const analyzeReceiptWithGemini = async (base64Data) => {
     setIsProcessing(true);
-    setStatusMessage('で解析中...');
+    setStatusMessage('Geminiで解析中...');
 
     try {
       const content = base64Data.split(',')[1];
       const mimeType = base64Data.split(';')[0].split(':')[1];
 
+      // ★正しい無料モデル名に修正★
       const MODEL_NAME = 'gemini-1.5-flash';
       
       const prompt = `
@@ -177,7 +178,8 @@ const ExpenseTrackerApp = () => {
         amount: result.amount || '',
         vendor: result.vendor || '',
         category: result.category || '消耗品費',
-        description: result.description || ''
+        description: result.description || '',
+        isDebit: formData.isDebit
       });
       
       setStatusMessage('解析完了！');
@@ -198,7 +200,8 @@ const ExpenseTrackerApp = () => {
         amount: Math.floor(Math.random() * 10000) + 100,
         vendor: ['セブンイレブン', 'Amazon.co.jp', 'スターバックス', 'タクシー利用'][Math.floor(Math.random() * 4)],
         category: ['消耗品費', '旅費交通費', '会議費', '通信費'][Math.floor(Math.random() * 4)],
-        description: '経費精算 (デモ)'
+        description: '経費精算 (デモ)',
+        isDebit: formData.isDebit
       };
       setFormData(mockData);
       setIsProcessing(false);
