@@ -47,8 +47,8 @@ const ExpenseTrackerApp = () => {
       }
       const savedUrl = localStorage.getItem('gas_app_url');
       if (savedUrl) setGasUrl(savedUrl);
-      const savedApiKey = localStorage.getItem('gemini_api_key');
-      if (savedApiKey) setGeminiApiKey(savedApiKey);
+      const savedApiKey = localStorage.getItem('_api_key');
+      if (savedApiKey) setApiKey(savedApiKey);
     } catch (e) {
       console.warn("初期データの読み込みに失敗しました", e);
     }
@@ -81,7 +81,7 @@ const ExpenseTrackerApp = () => {
 
   const saveSettings = () => {
     localStorage.setItem('gas_app_url', gasUrl);
-    localStorage.setItem('gemini_api_key', geminiApiKey);
+    localStorage.setItem('_api_key', ApiKey);
     setShowSettings(false);
     setStatusMessage('設定を保存しました');
     setTimeout(() => setStatusMessage(''), 3000);
@@ -119,8 +119,8 @@ const ExpenseTrackerApp = () => {
         const base64Data = reader.result;
         setCurrentImage(base64Data);
         
-        if (geminiApiKey) {
-          analyzeReceiptWithGemini(base64Data);
+        if (ApiKey) {
+          analyzeReceiptWith(base64Data);
         } else {
           simulateAIProcessing();
         }
@@ -129,15 +129,15 @@ const ExpenseTrackerApp = () => {
     }
   };
 
-  const analyzeReceiptWithGemini = async (base64Data) => {
+  const analyzeReceiptWith = async (base64Data) => {
     setIsProcessing(true);
-    setStatusMessage('Geminiで解析中...');
+    setStatusMessage('で解析中...');
 
     try {
       const content = base64Data.split(',')[1];
       const mimeType = base64Data.split(';')[0].split(':')[1];
 
-      const MODEL_NAME = 'gemini-2.5-flash';
+      const MODEL_NAME = 'gemini-1.5-flash';
       
       const prompt = `
         この領収書（画像またはPDF）を解析し、以下の情報をJSON形式で抽出してください。
